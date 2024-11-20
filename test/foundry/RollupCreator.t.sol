@@ -19,6 +19,7 @@ import "../../src/rollup/DeployHelper.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {EspressoTEEVerifierMock} from "../../src/mocks/EspressoTEEVerifier.sol";
 
 contract MockHotShot {
     mapping(uint256 => uint256) public commitments;
@@ -103,7 +104,7 @@ contract RollupCreatorTest is Test {
 
     function test_createEthRollup() public {
         vm.startPrank(deployer);
-
+        address proxyAdmin = address(140);
         // deployment params
         ISequencerInbox.MaxTimeVariation memory timeVars = ISequencerInbox.MaxTimeVariation(
             ((60 * 60 * 24) / 15),
@@ -111,6 +112,9 @@ contract RollupCreatorTest is Test {
             60 * 60 * 24,
             60 * 60
         );
+
+        EspressoTEEVerifierMock espressoTEEVerifier = new EspressoTEEVerifierMock();
+
         Config memory config = Config({
             confirmPeriodBlocks: 20,
             extraChallengeTimeBlocks: 200,
@@ -122,7 +126,8 @@ contract RollupCreatorTest is Test {
             chainId: 1337,
             chainConfig: "abc",
             genesisBlockNum: 15_000_000,
-            sequencerInboxMaxTimeVariation: timeVars
+            sequencerInboxMaxTimeVariation: timeVars,
+            espressoTEEVerifier: address(espressoTEEVerifier)
         });
 
         // prepare funds
@@ -255,6 +260,7 @@ contract RollupCreatorTest is Test {
 
     function test_createErc20Rollup() public {
         vm.startPrank(deployer);
+        address proxyAdmin = address(140);
         address nativeToken = address(
             new ERC20PresetFixedSupply("Appchain Token", "App", 1_000_000 ether, deployer)
         );
@@ -266,6 +272,9 @@ contract RollupCreatorTest is Test {
             60 * 60 * 24,
             60 * 60
         );
+
+        EspressoTEEVerifierMock espressoTEEVerifier = new EspressoTEEVerifierMock();
+
         Config memory config = Config({
             confirmPeriodBlocks: 20,
             extraChallengeTimeBlocks: 200,
@@ -277,7 +286,8 @@ contract RollupCreatorTest is Test {
             chainId: 1337,
             chainConfig: "abc",
             genesisBlockNum: 15_000_000,
-            sequencerInboxMaxTimeVariation: timeVars
+            sequencerInboxMaxTimeVariation: timeVars,
+            espressoTEEVerifier: address(espressoTEEVerifier)
         });
 
         // approve fee token to pay for deployment of L2 factories
@@ -413,7 +423,6 @@ contract RollupCreatorTest is Test {
 
     function test_upgrade() public {
         vm.startPrank(deployer);
-
         // deployment params
         ISequencerInbox.MaxTimeVariation memory timeVars = ISequencerInbox.MaxTimeVariation(
             ((60 * 60 * 24) / 15),
@@ -421,6 +430,9 @@ contract RollupCreatorTest is Test {
             60 * 60 * 24,
             60 * 60
         );
+
+        EspressoTEEVerifierMock espressoTEEVerifier = new EspressoTEEVerifierMock();
+
         Config memory config = Config({
             confirmPeriodBlocks: 20,
             extraChallengeTimeBlocks: 200,
@@ -432,7 +444,8 @@ contract RollupCreatorTest is Test {
             chainId: 1337,
             chainConfig: "abc",
             genesisBlockNum: 15_000_000,
-            sequencerInboxMaxTimeVariation: timeVars
+            sequencerInboxMaxTimeVariation: timeVars,
+            espressoTEEVerifier: address(espressoTEEVerifier)
         });
 
         // prepare funds
@@ -537,11 +550,7 @@ contract RollupCreatorTest is Test {
 }
 
 contract ProxyUpgradeAction {
-    function perform(
-        address admin,
-        address payable target,
-        address newLogic
-    ) public payable {
+    function perform(address admin, address payable target, address newLogic) public payable {
         ProxyAdmin(admin).upgrade(TransparentUpgradeableProxy(target), newLogic);
     }
 }

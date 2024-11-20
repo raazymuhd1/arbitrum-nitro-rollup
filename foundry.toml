@@ -6,8 +6,10 @@ test = 'test/foundry'
 cache_path  = 'forge-cache/sol'
 optimizer = true
 optimizer_runs = 100
-via_ir = false
+via_ir = true
+# solc_version = '0.8.20'
 evm_version = 'cancun'
+fs_permissions = [{ access = "read", path = "./"}]
 remappings = ['ds-test/=lib/forge-std/lib/ds-test/src/',
               'forge-std/=lib/forge-std/src/',
               '@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/',
