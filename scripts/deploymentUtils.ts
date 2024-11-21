@@ -205,6 +205,7 @@ export async function deployAllContracts(
     hostIoArg,
     verify
   )
+
   const osp: Contract = await deployContract(
     'OneStepProofEntry',
     signer,
