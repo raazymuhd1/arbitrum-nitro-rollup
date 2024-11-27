@@ -223,6 +223,14 @@ module.exports = {
           browserURL: 'https://sepolia.arbiscan.io/',
         },
       },
+      {
+        network: 'baseSepolia',
+        chainId: 84532,
+        urls: {
+          apiURL: 'https://api-sepolia.basescan.org/api',
+          browserURL: 'https://sepolia.basescan.org/',
+        },
+      },
     ],
   },
   mocha: {
