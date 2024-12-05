@@ -196,6 +196,3 @@ error Deprecated();
 
 /// @dev Thrown when any component of maxTimeVariation is over uint64
 error BadMaxTimeVariation();
-
-/// @dev Thrown when the TEE Attestation quote is invalid
-error InvalidTEEAttestationQuote();
