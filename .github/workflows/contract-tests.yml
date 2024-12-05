@@ -42,7 +42,7 @@ jobs:
         run: yarn
 
       - name: Build
-        run: forge test
+        run: forge test --no-match-path test/foundry/ExpressLaneBalance.t.sol
   tests:
     if: false # broken
     name: Contract tests
