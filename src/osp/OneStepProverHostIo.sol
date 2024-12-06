@@ -13,7 +13,6 @@ import "../state/ModuleMemory.sol";
 import "./IOneStepProver.sol";
 import "../bridge/Messages.sol";
 import "../bridge/IBridge.sol";
-import "../bridge/IHotShot.sol";
 
 contract OneStepProverHostIo is IOneStepProver {
     using GlobalStateLib for GlobalState;
@@ -25,20 +24,10 @@ contract OneStepProverHostIo is IOneStepProver {
     using ValueStackLib for ValueStack;
     using StackFrameLib for StackFrameWindow;
 
-    IHotShot public hotshot;
-
-    constructor(address hotshotAddr) {
-        hotshot = IHotShot(hotshotAddr);
-    }
-
     uint256 private constant LEAF_SIZE = 32;
     uint256 private constant INBOX_NUM = 2;
     uint64 private constant INBOX_HEADER_LEN = 40;
     uint64 private constant DELAYED_HEADER_LEN = 112 + 1;
-
-    // Hard coded for now. Find out a way to access the arb config
-    // in this contract and move this constant into the configuration.
-    uint256 private constant ESPRESSO_ESCAPE_HATCH_DELAY_THRESHOLD = 3;
 
     function setLeafByte(
         bytes32 oldLeaf,
@@ -52,10 +41,6 @@ contract OneStepProverHostIo is IOneStepProver {
         newLeaf &= ~(0xFF << leafShift);
         newLeaf |= uint256(val) << leafShift;
         return bytes32(newLeaf);
-    }
-
-    function _getHotShotCommitment(uint256 h) external view returns (uint256) {
-        return hotshot.getHotShotCommitment(h).blockCommRoot;
     }
 
     function executeGetOrSetBytes32(
@@ -312,91 +297,6 @@ contract OneStepProverHostIo is IOneStepProver {
         bytes32 acc = Messages.accumulateInboxMessage(beforeAcc, messageHash);
 
         require(acc == execCtx.bridge.delayedInboxAccs(msgIndex), "BAD_DELAYED_MESSAGE");
-        return true;
-    }
-
-    function executeIsHotShotLive(
-        ExecutionContext calldata execCtx,
-        Machine memory mach,
-        Module memory,
-        Instruction calldata,
-        bytes calldata proof
-    ) internal view {
-        uint256 height = mach.valueStack.pop().assumeI64();
-        uint256 threshold = ESPRESSO_ESCAPE_HATCH_DELAY_THRESHOLD;
-        uint8 liveness = uint8(proof[0]);
-        require(validateHotShotLiveness(execCtx, height, threshold, liveness > 0), "WRONG_HOTSHOT_LIVENESS");
-
-    }
-
-    function validateHotShotLiveness(
-        ExecutionContext calldata,
-        uint256 height,
-        uint256 threshold,
-        bool result
-    ) internal view returns (bool) {
-        bool expected = hotshot.lagOverEscapeHatchThreshold(height, threshold);
-        return result == expected;
-    }
-
-    function executeReadHotShotCommitment(
-        ExecutionContext calldata execCtx,
-        Machine memory mach,
-        Module memory mod,
-        Instruction calldata,
-        bytes calldata proof
-    ) internal view {
-        uint256 height = mach.valueStack.pop().assumeI64();
-        uint256 ptr = mach.valueStack.pop().assumeI32();
-
-        if (ptr + 32 > mod.moduleMemory.size || ptr % LEAF_SIZE != 0) {
-            mach.status = MachineStatus.ERRORED;
-            return;
-        }
-
-        uint256 leafIdx = ptr / LEAF_SIZE;
-        uint256 proofOffset = 0;
-        bytes32 leafContents;
-        MerkleProof memory merkleProof;
-        (leafContents, proofOffset, merkleProof) = mod.moduleMemory.proveLeaf(
-            leafIdx,
-            proof,
-            proofOffset
-        );
-
-        bytes calldata commitment = proof[proofOffset:proofOffset + 32];
-        bool success = validateHotShotCommitment(execCtx, height, commitment);
-        require(success, "ERROR_HOTSHOT_COMMITMENT");
-
-        for (uint32 i = 0; i < 32; i++) {
-            leafContents = setLeafByte(leafContents, i, uint8(proof[proofOffset + i]));
-        }
-
-        mod.moduleMemory.merkleRoot = merkleProof.computeRootFromMemory(leafIdx, leafContents);
-    }
-
-    function validateHotShotCommitment(
-        ExecutionContext calldata,
-        uint256 height,
-        bytes calldata commitment
-    ) internal view returns (bool) {
-        uint256 expected = hotshot.getHotShotCommitment(height).blockCommRoot;
-        require(expected != 0, "EMPTY HOTSHOT COMMITMENT");
-        bytes memory b = new bytes(32);
-        assembly {
-            mstore(add(b, 32), expected)
-        }
-
-        if (commitment.length != 32) {
-            return false;
-        }
-
-        for (uint256 i = 0; i < b.length; i++) {
-            if (b[i] != commitment[i]) {
-                return false;
-            }
-        }
-
         return true;
     }
 
@@ -740,10 +640,6 @@ contract OneStepProverHostIo is IOneStepProver {
             impl = executePopCoThread;
         } else if (opcode == Instructions.SWITCH_COTHREAD) {
             impl = executeSwitchCoThread;
-        } else if (opcode == Instructions.READ_HOTSHOT_COMMITMENT) {
-            impl = executeReadHotShotCommitment;
-        } else if (opcode == Instructions.IS_HOTSHOT_LIVE) {
-            impl = executeIsHotShotLive;
         }
         else {
             revert("INVALID_MEMORY_OPCODE");
