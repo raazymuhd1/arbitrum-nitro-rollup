@@ -9,7 +9,7 @@ export const config = {
     confirmPeriodBlocks: ethers.BigNumber.from('1'),
     extraChallengeTimeBlocks: ethers.BigNumber.from('1'),
     stakeToken: ethers.constants.AddressZero,
-    baseStake: ethers.utils.parseEther('0.00001'),
+    baseStake: ethers.utils.parseEther('0.01'),
     wasmModuleRoot:
       '0x184884e1eb9fefdc158f6c8ac912bb183bf3cf83f0090317e0bc4ac5860baa39',
     owner: 'OWNER_ADDRESS',
@@ -24,7 +24,7 @@ export const config = {
       delaySeconds: ethers.BigNumber.from('86400'),
       futureSeconds: ethers.BigNumber.from('3600'),
     },
-    espressoTEEVerifier: 'YOUR_DEPLOYED_ADDRESS',
+    espressoTEEVerifier: '0x8354db765810dF8F24f1477B06e91E5b17a408bF',
   },
   validators: [
     'AN_OWNED_ADDRESS',
